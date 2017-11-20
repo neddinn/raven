@@ -19,13 +19,19 @@ app.use(bodyParser.urlencoded({
 
 app.use(bodyParser.json());
 
+controllers(app);
+
+
 models.sequelize.sync().then(function () {
   models.sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
 
-  controllers(app);
 
   // start the server
   app.listen(app.get('port'), function () {
     console.log('Listening on port %d', app.get('port'));
   });
+
 });
+
+
+module.exports = app;
