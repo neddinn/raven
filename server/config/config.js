@@ -1,4 +1,4 @@
-
+/* jshint esversion: 6 */
 
 const development = {
   secret: 'thisisasecretkey',
@@ -7,11 +7,8 @@ const development = {
     port: '5432',
     host: 'localhost',
   },
-  nexmo: {
-    API_KEY: '3c89eb82',
-    API_SECRET: 'f40be594512c2793',
-    APP_ID: 'appId',
-    PRIVATE_KEY_PATH: 'privateKeyPath',
+  sms: {
+    fromNumber: process.env.SMS_FROM_NUMBER,
   },
 };
 
@@ -22,11 +19,8 @@ const test = {
     port: '5432',
     host: 'localhost',
   },
-  nexmo: {
-    API_KEY: '3c89eb82',
-    API_SECRET: 'f40be594512c2793',
-    APP_ID: 'appId',
-    PRIVATE_KEY_PATH: 'privateKeyPath',
+  sms: {
+    fromNumber: process.env.SMS_FROM_NUMBER,
   },
 };
 
@@ -37,11 +31,8 @@ const production = {
     port: process.env.DATABASE_PORT,
     host: process.env.DATABASE_HOST,
   },
-  nexmo: {
-    API_KEY: process.env.NEXMO_API_KEY,
-    API_SECRET: process.env.NEXMO_API_SECRET,
-    APP_ID: process.env.NEXMO_APP_ID,
-    PRIVATE_KEY_PATH: process.env.NEXMO_PRIVATE_KEY_PATH,
+  sms: {
+    fromNumber: process.env.SMS_FROM_NUMBER,
   },
 };
 

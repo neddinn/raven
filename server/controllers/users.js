@@ -30,7 +30,7 @@ module.exports = {
       .catch((err) => {
         logger.error(err);
         res.status(500).json(err);
-    });
+      });
   },
 
   update: (req, res) => {
@@ -38,7 +38,7 @@ module.exports = {
       if (user) {
         const attrs = _.pick(
           req.body, ['phoneNumber', 'email',
-          'profilePictureURL', 'fullName', 'lastSeen']);
+            'profilePictureURL', 'fullName']);
 
         user.update(attrs).then((user) => {
           res.status(200).json(user);

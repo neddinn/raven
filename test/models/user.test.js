@@ -13,16 +13,15 @@ describe('User', () => {
       'fullName': "John",
       'profilePictureURL': 'http://john-doe-url.com',
       'email': 'john@gmail.com',
-      'lastSeen': 'Sun Oct 08 2017 16:33:17 GMT+0100 (WAT)',
-      'lastSeenLocation': { type: 'Point', coordinates: [39.807222,-76.984722]}
-    }
-    models.User.destroy({where: {}}).then(() => {
+      'pin': '1234'
+    };
+    models.User.destroy({ where: {} }).then(() => {
       done();
     });
   });
 
   afterEach((done) => {
-    models.User.destroy({where: {}}).then(() => {
+    models.User.destroy({ where: {} }).then(() => {
       done();
     });
   });
@@ -63,7 +62,7 @@ describe('User', () => {
   it('should be able to find a user', (done) => {
     models.User.create(mockUser).then((createdUser) => {
       models.User.findOne({
-        where : {
+        where: {
           id: createdUser.id
         }
       }).then((user) => {
@@ -78,7 +77,7 @@ describe('User', () => {
     models.User.create(mockUser).then((createdUser) => {
       createdUser.destroy().then(() => {
         models.User.findOne({
-          where : {
+          where: {
             id: createdUser.id
           }
         }).then((user) => {
@@ -88,5 +87,7 @@ describe('User', () => {
       });
     });
   });
+
+  // TODO: Add test for new user fields
 
 });

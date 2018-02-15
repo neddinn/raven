@@ -28,7 +28,7 @@ models.sequelize.sync().then(function () {
 
   // start the server
   app.listen(app.get('port'), function () {
-    console.log('Listening on port %d', app.get('port'));
+    console.info('🌎  Listening on port %s', app.get('port'));
   });
 
 });

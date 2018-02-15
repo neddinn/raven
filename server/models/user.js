@@ -1,4 +1,4 @@
-
+/* jshint esversion: 6 */
 
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
@@ -7,11 +7,13 @@ module.exports = (sequelize, DataTypes) => {
     phoneNumber: { type: DataTypes.STRING, unique: true },
     profilePictureURL: { type: DataTypes.STRING },
     fullName: { type: DataTypes.STRING },
-    lastSeen: { type: DataTypes.DATE },
-    // lastSeenLocation:   { type: DataTypes.GEOMETRY },
+    pin: { type: DataTypes.STRING },
+    pinRecoveryEmail: { type: DataTypes.STRING },
+    serverKey: { type: DataTypes.STRING },
+    clientKey: { type: DataTypes.STRING },
   }, {
-    underscored: true,
-  });
+      underscored: true,
+    });
 
   return User;
 };

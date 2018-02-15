@@ -1,23 +1,23 @@
 /* jshint esversion: 6 */
 
-// const _ = require('lodash');
 const logger = require('winston');
 const jwt = require('jsonwebtoken');
 const models = require('../models/');
 
 const env = process.env.NODE_ENV || 'development';
-const [secret] = require('../config/config')[env];
+const test = require('../config/config');
+const secret = require('../config/config')[env]['secret'];
 const Pigeon = require('../lib/pigeon');
 
-const maxNumber = 9999;
-const minNumber = 1000;
+const maxCodeNumber = 9999;
+const minCodeNumber = 1000;
 const typeKey = {
   sms: 'sendSms',
   call: 'makeCall',
 };
 
-const getVerificationCode =
-  () => Math.floor(Math.random() * (maxNumber - (minNumber + 1))) + minNumber;
+const generateVerificationCode =
+  () => Math.floor(Math.random() * (maxCodeNumber - (minCodeNumber + 1))) + minCodeNumber;
 
 const handleError = (res, statusCode) => ((err) => {
   logger.error(err);
@@ -37,7 +37,7 @@ const handleEntityNotFound = res => ((entity) => {
 
 const validateField = (req, res, field) => {
   if (!req.body[field]) {
-    return res.status(500).json({
+    return res.status(400).json({
       message: `${field} is required`,
     });
   }
@@ -46,15 +46,22 @@ const validateField = (req, res, field) => {
 
 module.exports = {
   authenticate: (req, res) => {
-    validateField(req, res, 'phoneNumber');
+    if (!req.body.phoneNumber) {
+      return res.status(400).json({
+        message: 'phoneNumber is required',
+      });
+    }
+
     const { phoneNumber } = req.body;
-    const requestID = jwt.sign({ phoneNumber }, secret, { algorithm: 'RS256' });
-    const verificationCode = getVerificationCode();
+    const verificationCode = generateVerificationCode();
+    const type = req.body.type || 'sms';
+    const operation = typeKey[type] || 'sendSms';
+    const requestID = jwt.sign({ phoneNumber, verificationCode }, secret, { algorithm: 'HS256', expiresIn: '5 minutes' });
     const message = `Your verification code is ${verificationCode}`;
 
-    models.Auth.create({ requestID, verificationCode, phoneNumber })
-      .then(Pigeon.sendSms(phoneNumber, message))
-      .then(() => {
+    // .then(Pigeon[operation](phoneNumber, message))
+    models.PhoneNumberVeirication.create({ requestID, verificationCode, phoneNumber })
+      .then((data) => {
         res.status(200).json({ requestID });
       })
       .catch(handleError(res));
@@ -62,27 +69,13 @@ module.exports = {
 
   resend: (req, res) => {
     validateField(req, res, 'phoneNumber');
-
-    if (!req.body.requestID) {
-      res.status(500).json({ message: 'Invalid request' });
-    }
-
     const { phoneNumber } = req.body;
-    const type = req.body.type || 'sms';
-    const { requestID } = req.body;
-    const operation = typeKey[type] || 'sendSms';
-    const verificationCode = getVerificationCode();
-    const message = `Your verification code is ${verificationCode}`;
-    const newRequestID = jwt.sign({ phoneNumber }, secret, { algorithm: 'RS256' });
+    const _this = this;
 
-    models.Auth.findOne({ where: { requestID } })
+    models.PhoneNumberVeirication.findOne({ where: { phoneNumber } })
       .then(handleEntityNotFound(res))
       .then(data => data.destroy())
-      .then(() => models.Auth.create({ newRequestID, verificationCode, phoneNumber }))
-      .then(Pigeon[operation](phoneNumber, message))
-      .then(() => {
-        res.status(200).json({ newRequestID });
-      })
+      .then(() => _this.authenticate(req, res))
       .catch(handleError);
   },
 
@@ -91,7 +84,7 @@ module.exports = {
       res.status(500).json({ message: 'Invalid request' });
     }
 
-    models.Auth.findOne({
+    models.PhoneNumberVeirication.findOne({
       where: {
         requestID: req.body.requestID,
         verificationCode: req.body.verificationCode,
@@ -111,7 +104,7 @@ module.exports = {
         ));
       })
       .then(data => data.destroy())
-      .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: {phoneNumber: data.phoneNumber} }))
+      .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: { phoneNumber: data.phoneNumber } }))
       .spread((data, created) => res.status(created ? 200 : 201).status(data.id))
       .catch(handleError(res));
   },
