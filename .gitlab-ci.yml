@@ -1,0 +1,9 @@
+job:
+  script:
+    - node test/test-config && NODE_ENV=test mocha test/**/**.js --timeout 10000
+  stage: test
+  tags:
+    - node
+    - postgres
+    - mocha
+  allow_failure: true
