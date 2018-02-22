@@ -53,7 +53,6 @@ module.exports = {
   },
 
   resend: (req, res) => {
-    // validateField(req, res, 'phoneNumber');
     const { phoneNumber } = req.body;
     const _this = this;
 
@@ -98,6 +97,24 @@ module.exports = {
               authToken: token.sign({ userId: data.id, phoneNumber: data.phoneNumber }),
             });
           });
+      })
+      .catch(util.handleError(res));
+  },
+
+  handshake: (req, res) => {
+    if (!req.body.clientKey) {
+      return res.status(400).json({
+        message: 'client key is required',
+      });
+    }
+    const { clientKey } = req.body;
+    const user = req.user;
+
+    models.User.findById(user.id)
+      .then(util.handleEntityNotFound(res))
+      .then((user) => {
+        if (!user) return;
+        return user.update({ clientKey, }).then((data) => res.status(200).json({ serverKey: data.serverKey }));
       })
       .catch(util.handleError(res));
   },
