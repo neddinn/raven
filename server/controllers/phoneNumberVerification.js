@@ -20,15 +20,11 @@ const typeKey = {
 const generateVerificationCode =
   () => Math.floor(Math.random() * (maxCodeNumber - (minCodeNumber + 1))) + minCodeNumber;
 
-
-const validateField = (req, res, field) => {
-  if (!req.body[field]) {
-    return res.status(400).json({
-      message: `${field} is required`,
-    });
-  }
-  return true;
+const token = {
+  sign: (data, expiry) => jwt.sign(data, secret, { algorithm: 'HS256', expiresIn: expiry }),
+  verify: (data) => jwt.verify(data, secret),
 };
+
 
 module.exports = {
   authenticate: (req, res) => {
@@ -42,7 +38,7 @@ module.exports = {
     const verificationCode = generateVerificationCode();
     const type = req.body.type || 'sms';
     const operation = typeKey[type] || 'sendSms';
-    const requestID = jwt.sign({ phoneNumber, verificationCode }, secret, { algorithm: 'HS256', expiresIn: '5 minutes' });
+    const requestID = token.sign({ phoneNumber, verificationCode }, '5 minutes');
     const message = `Your verification code is ${verificationCode}`;
 
     models.PhoneNumberVerification.create({ requestID, verificationCode, phoneNumber })
@@ -57,7 +53,7 @@ module.exports = {
   },
 
   resend: (req, res) => {
-    validateField(req, res, 'phoneNumber');
+    // validateField(req, res, 'phoneNumber');
     const { phoneNumber } = req.body;
     const _this = this;
 
@@ -70,7 +66,7 @@ module.exports = {
 
   verify: (req, res) => {
     if (!req.body.requestID || !req.body.verificationCode) {
-      res.status(500).json({ message: 'Invalid request' });
+      res.status(400).json({ message: 'Invalid request' });
     }
 
     models.PhoneNumberVerification.findOne({
@@ -79,22 +75,30 @@ module.exports = {
         verificationCode: req.body.verificationCode,
       },
     })
-      .then(handleEntityNotFound(res))
+      .then(util.handleEntityNotFound(res))
       .then((data) => {
-        jwt.verify(data.requestID, secret, (err, decoded) => (
-          new Promise((resolve, reject) => {
-            if (err || !decoded ||
-              !decoded.phoneNumber ||
-              decoded.phoneNumber !== data.phoneNumber) {
-              return reject(err);
+        if (!data) return;
+        const decoded = token.verify(data.requestID);
+        if (!decoded || !decoded.phoneNumber || decoded.phoneNumber !== data.phoneNumber) {
+          return res.status(404).json(err);
+        }
+
+        data.destroy()
+          .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: { phoneNumber: data.phoneNumber } }))
+          .spread((data, created) => {
+            if (created) {
+              return Crypto.generateKeys(data).then((keys) =>
+                data.update({ privateKey: keys.privateKey, serverKey: keys.publicKey }));
             }
-            return resolve(data);
+            return data;
           })
-        ));
+          .then((data) => {
+            res.status(200).json({
+              user: { id: data.id, phoneNumber: data.phoneNumber, serverKey: data.serverKey },
+              authToken: token.sign({ userId: data.id, phoneNumber: data.phoneNumber }),
+            });
+          });
       })
-      .then(data => data.destroy())
-      .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: { phoneNumber: data.phoneNumber } }))
-      .spread((data, created) => res.status(created ? 200 : 201).status(data.id))
       .catch(util.handleError(res));
   },
 };

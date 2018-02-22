@@ -9,6 +9,7 @@ module.exports = function (app) {
   app.put('/api/v1/users/:id', users.update);
 
   app.post('/api/v1/authenticate', auth.authenticate);
+  app.post('/api/v1/verify', auth.verify);
 
   app.get('/*', (req, res) => {
     res.send('its Raven, baby!');

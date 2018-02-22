@@ -7,12 +7,16 @@ module.exports = {
   }),
 
   responseWithResult: (res, statusCode) => ((entity) => {
-    res.status(statusCode || 200).json(entity);
+    if (entity) {
+      return res.status(statusCode || 200).json(entity);
+    }
+    return null;
   }),
 
   handleEntityNotFound: res => ((entity) => {
     if (!entity) {
-      return res.status(404).end();
+      res.status(404).end();
+      return null;
     }
     return entity;
   })

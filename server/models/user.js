@@ -8,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     fullName: { type: DataTypes.STRING },
     pin: { type: DataTypes.STRING },
     pinRecoveryEmail: { type: DataTypes.STRING },
+    privateKey: { type: DataTypes.STRING },
     serverKey: { type: DataTypes.STRING },
     clientKey: { type: DataTypes.STRING },
   }, {
