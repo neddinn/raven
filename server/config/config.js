@@ -21,6 +21,8 @@ const test = {
   },
   sms: {
     fromNumber: process.env.SMS_FROM_NUMBER,
+    apikey: '',
+    username: ''
   },
 };
 
