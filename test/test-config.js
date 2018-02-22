@@ -1,7 +1,7 @@
 'use strict';
 
 var pgtools = require('pgtools'),
-    models = require("../server/models/");
+  models = require("../server/models/");
 
 pgtools.dropdb({
   user: 'postgres',
@@ -22,8 +22,7 @@ pgtools.dropdb({
       console.error(err);
       process.exit(-1);
     }
-    models.sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
-    models.sequelize.sync().then(function() {
+    models.sequelize.sync().then(function () {
       process.exit();
     });
   });

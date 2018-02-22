@@ -1,52 +1,38 @@
 /* jshint esversion: 6 */
 
 const axios = require('axios');
+const logger = console || require('winston');
 
 const env = process.env.NODE_ENV || 'development';
 const config = require('../config/config')[env];
 
-// We need this to build our post string
+const querystring = require('querystring');
+const https = require('https');
+const username = config.sms.username;
+const apikey = config.sms.apikey;
 
-var querystring = require('querystring');
-var https = require('https');
-
-// Your login credentials
-var username = config.sms.username;
-var apikey = config.sms.apiKey;
 
 function sendMessage(to, message) {
 
-  var postData = querystring.stringify({
-    'username': username,
-    'to': to,
-    'message': message
-  });
+  const url = 'http://api.africastalking.com/version1/messaging';
 
-  var postOptions = {
-    host: 'api.africastalking.com',
-    path: '/version1/messaging',
-    method: 'POST',
-  };
-  const url = `${postOptions.host}${postOptions.path}`;
-
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Content-Length': postData.length,
-    'Accept': 'application/json',
-    'apikey': apikey
-  };
+  const data = querystring.stringify({ username, to, message });
 
   return axios({
     method: 'post',
     url,
-    data: postData,
-    headers,
+    headers: {
+      'Content-type': 'application/x-www-form-urlencoded',
+      apikey,
+    },
+    data,
   })
-    .then(function (response) {
-      return response;
+    .then((response) => {
+      return response && response.status === 201;
     })
-    .catch(function (error) {
-      return error;
+    .catch((error) => {
+      logger.error(error);
+      return false;
     });
 }
 
@@ -56,6 +42,4 @@ const Pigeon = {
   sendSms: (phoneNumber, message) => sendMessage(phoneNumber, message),
 };
 
-module.exports = {
-  Pigeon,
-};
+module.exports = Pigeon;

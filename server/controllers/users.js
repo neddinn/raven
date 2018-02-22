@@ -1,8 +1,7 @@
-
-
 const _ = require('lodash'),
   logger = console || require('winston'),
-  models = require('../models/');
+  models = require('../models/'),
+  util = require('../util');
 
 module.exports = {
   index: (req, res) => {
@@ -10,10 +9,7 @@ module.exports = {
       .then((users) => {
         res.status(200).json(users);
       })
-      .catch((err) => {
-        logger.error(err);
-        res.status(500).json(err);
-      });
+      .catch(util.handleError(res));
   },
 
   new: (req, res) => {
@@ -26,34 +22,22 @@ module.exports = {
     }
 
     models.User.create(attrs)
-      .then((user) => res.status(201).json(user))
-      .catch((err) => {
-        logger.error(err);
-        res.status(500).json(err);
-      });
+      .then(util.responseWithResult(res, 201))
+      .catch(util.handleError(res));
   },
 
   update: (req, res) => {
-    models.User.findById(req.params.id).then((user) => {
-      if (user) {
+    models.User.findById(req.params.id)
+      .then(util.handleEntityNotFound(res))
+      .then((user) => {
         const attrs = _.pick(
           req.body, ['phoneNumber', 'email',
             'profilePictureURL', 'fullName']);
 
-        user.update(attrs).then((user) => {
-          res.status(200).json(user);
-        }).catch((err) => {
-          logger.error(err);
-          res.status(500).json(err.original.detail);
-        });
-      } else {
-        res.status(404).json({
-          message: 'User does not exist.',
-        });
-      }
-    }).catch((err) => {
-      logger.error(err);
-      res.status(500).json(err);
-    });
+        return user
+          .update(attrs);
+      })
+      .then(util.responseWithResult(res))
+      .catch(util.handleError(res));
   },
 };

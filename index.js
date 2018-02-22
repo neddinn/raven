@@ -23,8 +23,6 @@ controllers(app);
 
 
 models.sequelize.sync().then(function () {
-  models.sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
-
 
   // start the server
   app.listen(app.get('port'), function () {

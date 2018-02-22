@@ -8,6 +8,7 @@ const env = process.env.NODE_ENV || 'development';
 const test = require('../config/config');
 const secret = require('../config/config')[env]['secret'];
 const Pigeon = require('../lib/pigeon');
+const util = require('../util');
 
 const maxCodeNumber = 9999;
 const minCodeNumber = 1000;
@@ -19,21 +20,6 @@ const typeKey = {
 const generateVerificationCode =
   () => Math.floor(Math.random() * (maxCodeNumber - (minCodeNumber + 1))) + minCodeNumber;
 
-const handleError = (res, statusCode) => ((err) => {
-  logger.error(err);
-  res.status(statusCode || 500).json(err);
-});
-
-const responseWithResult = (res, statusCode) => ((entity) => {
-  res.status(statusCode || 200).json(entity);
-});
-
-const handleEntityNotFound = res => ((entity) => {
-  if (!entity) {
-    return res.status(404).end();
-  }
-  return entity;
-});
 
 const validateField = (req, res, field) => {
   if (!req.body[field]) {
@@ -59,12 +45,15 @@ module.exports = {
     const requestID = jwt.sign({ phoneNumber, verificationCode }, secret, { algorithm: 'HS256', expiresIn: '5 minutes' });
     const message = `Your verification code is ${verificationCode}`;
 
-    // .then(Pigeon[operation](phoneNumber, message))
-    models.PhoneNumberVeirication.create({ requestID, verificationCode, phoneNumber })
-      .then((data) => {
-        res.status(200).json({ requestID });
+    models.PhoneNumberVerification.create({ requestID, verificationCode, phoneNumber })
+      .then((data) => Pigeon[operation](phoneNumber, message))
+      .then((result) => {
+        if (result) {
+          return res.status(200).json({ requestID });
+        }
+        return res.status(500).send('Error sending message');
       })
-      .catch(handleError(res));
+      .catch(util.handleError(res));
   },
 
   resend: (req, res) => {
@@ -72,11 +61,11 @@ module.exports = {
     const { phoneNumber } = req.body;
     const _this = this;
 
-    models.PhoneNumberVeirication.findOne({ where: { phoneNumber } })
-      .then(handleEntityNotFound(res))
+    models.PhoneNumberVerification.findOne({ where: { phoneNumber } })
+      .then(util.handleEntityNotFound(res))
       .then(data => data.destroy())
       .then(() => _this.authenticate(req, res))
-      .catch(handleError);
+      .catch(util.handleError(res));
   },
 
   verify: (req, res) => {
@@ -84,7 +73,7 @@ module.exports = {
       res.status(500).json({ message: 'Invalid request' });
     }
 
-    models.PhoneNumberVeirication.findOne({
+    models.PhoneNumberVerification.findOne({
       where: {
         requestID: req.body.requestID,
         verificationCode: req.body.verificationCode,
@@ -106,6 +95,6 @@ module.exports = {
       .then(data => data.destroy())
       .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: { phoneNumber: data.phoneNumber } }))
       .spread((data, created) => res.status(created ? 200 : 201).status(data.id))
-      .catch(handleError(res));
+      .catch(util.handleError(res));
   },
 };
