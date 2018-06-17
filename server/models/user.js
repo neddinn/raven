@@ -8,12 +8,20 @@ module.exports = (sequelize, DataTypes) => {
     fullName: { type: DataTypes.STRING },
     pin: { type: DataTypes.STRING },
     pinRecoveryEmail: { type: DataTypes.STRING },
-    privateKey: { type: DataTypes.STRING },
-    serverKey: { type: DataTypes.STRING },
-    clientKey: { type: DataTypes.STRING },
-  }, {
-      underscored: true,
-    });
+    privateKey: { type: DataTypes.TEXT },
+    serverKey: { type: DataTypes.TEXT },
+    clientKey: { type: DataTypes.TEXT },
+  });
+
+  User.associate = models => {
+    User.hasMany(models.Bank, { foreignKey: 'userId' });
+    User.hasMany(models.Card, { foreignKey: 'userId' });
+    User.hasMany(models.Transaction, { foreignKey: 'senderId' });
+    User.hasMany(models.Transaction, { foreignKey: 'recipientId' });
+    User.hasMany(models.Request, { foreignKey: 'senderId' });
+    User.hasMany(models.Request, { foreignKey: 'recipientId' });
+  };
+
 
   return User;
 };

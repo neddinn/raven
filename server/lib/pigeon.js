@@ -8,8 +8,8 @@ const config = require('../config/config')[env];
 
 const querystring = require('querystring');
 const https = require('https');
-const username = config.sms.username;
-const apikey = config.sms.apikey;
+const username = 'raven' || config.sms.username;
+const apikey = '67f0e9d1d98bf55ce386130ab29c9abaa845b20e885408aef4f2dea2eb2cac5e' || config.sms.apikey;
 
 
 function sendMessage(to, message) {

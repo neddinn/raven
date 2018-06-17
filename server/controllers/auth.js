@@ -5,9 +5,9 @@ const jwt = require('jsonwebtoken');
 const models = require('../models/');
 
 const env = process.env.NODE_ENV || 'development';
-const test = require('../config/config');
 const secret = require('../config/config')[env]['secret'];
 const Pigeon = require('../lib/pigeon');
+const authSvc = require('../services/auth.service');
 const util = require('../util');
 
 const maxCodeNumber = 9999;
@@ -19,11 +19,6 @@ const typeKey = {
 
 const generateVerificationCode =
   () => Math.floor(Math.random() * (maxCodeNumber - (minCodeNumber + 1))) + minCodeNumber;
-
-const token = {
-  sign: (data, expiry) => jwt.sign(data, secret, { algorithm: 'HS256', expiresIn: expiry }),
-  verify: (data) => jwt.verify(data, secret),
-};
 
 
 module.exports = {
@@ -38,16 +33,18 @@ module.exports = {
     const verificationCode = generateVerificationCode();
     const type = req.body.type || 'sms';
     const operation = typeKey[type] || 'sendSms';
-    const requestID = token.sign({ phoneNumber, verificationCode }, '5 minutes');
+    const requestID = authSvc.signToken({ phoneNumber, verificationCode }, '5m');
     const message = `Your verification code is ${verificationCode}`;
 
-    models.PhoneNumberVerification.create({ requestID, verificationCode, phoneNumber })
-      .then((data) => Pigeon[operation](phoneNumber, message))
+    models.PhoneNumberVerification.upsert({ requestID, verificationCode, phoneNumber }, { phoneNumber })
+      // .then((data) => Pigeon[operation](phoneNumber, message))
       .then((result) => {
         if (result) {
+          console.log('requestID', requestID);
           return res.status(200).json({ requestID });
         }
-        return res.status(500).send('Error sending message');
+        console.log('verificationCode', verificationCode);
+        return res.status(500).send('An Error occured');
       })
       .catch(util.handleError(res));
   },
@@ -58,8 +55,8 @@ module.exports = {
 
     models.PhoneNumberVerification.findOne({ where: { phoneNumber } })
       .then(util.handleEntityNotFound(res))
-      .then(data => data.destroy())
-      .then(() => _this.authenticate(req, res))
+      .then(data => data && data.destroy())
+      .then(() => module.exports.authenticate(req, res))
       .catch(util.handleError(res));
   },
 
@@ -67,7 +64,6 @@ module.exports = {
     if (!req.body.requestID || !req.body.verificationCode) {
       res.status(400).json({ message: 'Invalid request' });
     }
-
     models.PhoneNumberVerification.findOne({
       where: {
         requestID: req.body.requestID,
@@ -75,33 +71,39 @@ module.exports = {
       },
     })
       .then(util.handleEntityNotFound(res))
-      .then((data) => {
-        if (!data) return;
-        const decoded = token.verify(data.requestID);
-        if (!decoded || !decoded.phoneNumber || decoded.phoneNumber !== data.phoneNumber) {
+      .then((authData) => {
+        if (!authData) return;
+        const decoded = authSvc.verifyToken(authData.requestID);
+        if (!decoded || !decoded.phoneNumber || decoded.phoneNumber !== authData.phoneNumber) {
           return res.status(404).json(err);
         }
-
-        data.destroy()
-          .then(data => models.User.findOrCreate({ where: { phoneNumber: data.phoneNumber }, defaults: { phoneNumber: data.phoneNumber } }))
-          .spread((data, created) => {
-            if (created) {
-              return Crypto.generateKeys(data).then((keys) =>
-                data.update({ privateKey: keys.privateKey, serverKey: keys.publicKey }));
-            }
-            return data;
+        authData.destroy()
+        .then(authData => models.User.findOrCreate({ where: { phoneNumber: authData.phoneNumber }, defaults: { phoneNumber: authData.phoneNumber } }))
+        .spread((userData, created) => {
+          console.log('created', created);
+          if (!created) {
+            return userData;
+          }
+          return models.Key.pop()
+          .then((key) => {
+              userData.privateKey = key.privateKey;
+              userData.serverKey = key.publicKey;
+              userData.phoneNumber = authData.phoneNumber;
+              console.log('about to saveeeeee');
+              return userData.save();
+            });
           })
-          .then((data) => {
+          .then((userData) => {
             res.status(200).json({
-              user: { id: data.id, phoneNumber: data.phoneNumber, serverKey: data.serverKey },
-              authToken: token.sign({ userId: data.id, phoneNumber: data.phoneNumber }),
+              user: { id: userData.id, phoneNumber: userData.phoneNumber, serverKey: userData.serverKey },
+              authToken: authSvc.signToken({ userId: userData.id, phoneNumber: userData.phoneNumber }, '7d'),
             });
           });
       })
       .catch(util.handleError(res));
   },
 
-  handshake: (req, res) => {
+  handshake: (req, res) => { 
     if (!req.body.clientKey) {
       return res.status(400).json({
         message: 'client key is required',
@@ -113,9 +115,33 @@ module.exports = {
     models.User.findById(user.id)
       .then(util.handleEntityNotFound(res))
       .then((user) => {
-        if (!user) return;
-        return user.update({ clientKey, }).then((data) => res.status(200).json({ serverKey: data.serverKey }));
+        if (!user) return res.status(404).json({ message: 'User Not found' });
+        user.clientKey = clientKey;
+        return user.save().then((data) => res.status(200).json({ 
+          serverKey: data.serverKey,
+          authToken: authSvc.signToken({ userId: user.id, phoneNumber: user.phoneNumber }, '7d'),
+        }));
       })
       .catch(util.handleError(res));
+  },
+  
+  keyTest: (req, res) => {
+    console.log('Inside keytest', req.user);
+    return res.status(200).send('done');
+    // models.Key.findOne({ 
+    //   where: {
+    //     id: {
+    //       $ne: null
+    //     }
+    //   } 
+    // })
+    // .then((key) => {
+    //   key.privateKey = 'test';
+    //   key.save().then((key) => {
+    //     console.log('key', key.privateKey);
+    //     res.status(200).send('done');
+    //   });
+    // })
+    // .catch(util.handleError(res));
   },
 };
