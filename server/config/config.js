@@ -41,7 +41,8 @@ const staging = {
     baseUrl: process.env.PAYMENT_BASE_URL,
     apiKey: process.env.PAYMENT_API_KEY,
     secret: process.env.PAYMENT_API_SECRET
-  }
+  },
+  redisUrl: process.env.REDIS_URL
 };
 
 const test = {
@@ -78,7 +79,8 @@ const production = {
     baseUrl: 'https://live.moneywaveapi.co',
     apiKey: 'lv_YCBUH4CO1D100888U2BI',
     secret: 'lv_RYBGO4HXV1PJ3Q4AK7PCAH30G2Z1U1'
-  }
+  },
+  redisUrl: process.env.REDIS_URL
 };
 
 const config = {
