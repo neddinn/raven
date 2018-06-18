@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon ./index",
+    "start": "node ./index",
     "test": "PORT=5000 && NODE_ENV=test node test/test-config && NODE_ENV=test mocha test/**/**.js --timeout 100000 --exit"
   },
+  "engines" : { "node" : ">=8.11.0" },
   "author": "",
   "license": "ISC",
   "dependencies": {
