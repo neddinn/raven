@@ -85,7 +85,7 @@ module.exports = {
           {
             model: models.User,
             as: 'sender',
-            attributes: ['email', 'phoneNumber', 'fullName']
+            attributes: ['email', 'phoneNumber', 'fullName', 'privateKey']
           },
           {
             model: models.Bank,
@@ -95,22 +95,63 @@ module.exports = {
           {
             model: models.Card,
             as: 'senderCard',
-            attributes: ['cvc', 'number', 'expiryMonth', 'expiryYear']
+            attributes: ['cvv', 'number', 'expiryMonth', 'expiryYear']
           }
         ]})
         .then(transaction => {
           let operationDetails = {
             transactionId: transaction.id,
-            status: 'pending'
+            status: 'pending',
+            message: '',
           };
-          return [models.Operation.create(operationDetails), transaction];
+          return models.Operation.findOne({transactionId,})
+          .then((operation) => {
+
+            // Dont continue if operation exists and was successful
+            // Otherwise upsert (for when we implement retry functionality)
+            if(operation && operation.status === 'success')
+              return [null, transaction];
+            operationDetails.id = operation && operation.id;
+            return [models.Operation.upsert(operationDetails), transaction];
+          });
         })
         .spread((operation, transaction) => {
-          if(operation)
-            return Gateway.transfer(transaction);
+          if (operation) return false;
+
+          // Only decrypt on production environment
+          if (process.env.NODE_ENV !== 'production') {
+            return transaction;
+          }
+          if (operation) {
+            return Crypto.decryptObject({
+              data: transaction.senderCard,
+              fields: models.Card.sensitiveFields,
+              key: transaction.sender.privateKey
+            })
+            .then((data) => {
+              for (let key of models.Card.sensitiveFields) {
+                if (transaction.senderCard.hasOwnProperty(key)) {
+                  transaction.senderCard[key] = data[key];
+                }
+              }
+              return transaction;
+            });
+          }
+        })
+        .then((transaction) => transaction ? [Gateway.transfer(transaction), transaction.id] : [null, null])
+        .spread((result, transactionId) => {
+          return models.Operation.findOne({where: {transactionId}})
+            .then((operation) => {
+              if (!operation) return;
+              operation.status = result.status;
+              operation.message = result.message;
+              return operation.save();
+            });
         })
         .then(result => {
-          return res.status(200).json({ success: false });
+          if (!result) return util.handleError(res)();
+          const {status, message} = result;
+          return res.status(200).json({ status, message });
         })
         .catch(util.handleError(res));
     });

@@ -20,10 +20,10 @@ const Gateway = {
       lastname: data.sender.fullName && data.sender.fullName.split(' ')[1],
       phonenumber: data.sender.phoneNumber,
       email: data.sender.email,
-      recipient_bank: data.recipientBank.name,
+      recipient_bank: data.recipientBank.code,
       recipient_account_number: data.recipientBank.accountNumber,
       card_no: data.senderCard.number,
-      cvv: data.senderCard.cvc,
+      cvv: data.senderCard.cvv,
       expiry_year: data.senderCard.expiryYear,
       expiry_month: data.senderCard.expiryMonth,
       pin: data.senderCard.pin,
@@ -89,27 +89,18 @@ const Gateway = {
         headers: { 'content-type': 'application/json', Authorization: token },
         data: transferDetails
       });
-      return result;
+      return {
+        status: result.response && result.response.data.status,
+        message: result.response && result.response.data.message
+      };
       
     } catch (error) {
       return {
-        status: false
+        status: error.response && error.response.data.status,
+        message: error.response && error.response.data.message
       };
     }
   }
 };
-
-// Gateway.bankList()
-//   .then(function(data) {
-//     console.log('data', data);
-//     process.exit();
-//   })
-//   .catch(console.error);
-
-// Gateway.verifyAccount('0014745439', '221')
-//   .then(function(data) {
-//     console.log('data', data);
-//   })
-//   .catch(console.error);
 
 module.exports = Gateway;

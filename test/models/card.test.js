@@ -14,7 +14,7 @@ describe('Card', () => {
       'brand': 'STANBIC IBTC',
       'expiryMonth': '02',
       'expiryYear': '2020',
-      'cvc': '126'
+      'cvv': '126'
     };
     models.Card.destroy({ where: {} }).then(() => {
       done();

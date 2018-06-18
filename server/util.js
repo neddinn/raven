@@ -10,7 +10,7 @@ module.exports = {
 
   handleError: (res, statusCode) => ((err) => {
     logger.error(err);
-    res.status(statusCode || 500).json(err);
+    res.status(statusCode || 500).json({ message: 'An error occured' });
   }),
 
   responseWithResult: (res, statusCode) => ((entity) => {

@@ -37,4 +37,43 @@ Crypto.decrypt = async (encrypted, privkey) => {
   return plaintext.data;
 };
 
+const encryptDecryptArray = (obj, operation) => {
+  var {data, key, fields} = obj;
+  
+  const promises =  data.map(async (obj) => {
+    for (let field of fields) {
+      let value = await Crypto[operation](obj[field], key);
+      obj[field] = value;
+    }
+    return obj;
+  });
+
+  return Promise.all(promises);
+};
+
+Crypto.decryptObjectArray = (obj) => {
+  return encryptDecryptArray(obj, 'decrypt');
+};
+
+Crypto.encryptObjectArray = (obj) => {
+  return encryptDecryptArray(obj, 'encrypt');
+};
+
+const encryptDecryptObject = async (obj, operation) => {
+  var {data, key, fields} = obj;
+  for (let field of fields) {
+    let value = await Crypto[operation](data[field], key);
+    data[field] = value;
+  }
+  return data;
+};
+
+Crypto.decryptObject = (obj) => {
+  return encryptDecryptObject(obj, 'decrypt');
+};
+
+Crypto.encryptObject = (obj) => {
+  return encryptDecryptObject(obj, 'encrypt');
+};
+
 module.exports = Crypto;

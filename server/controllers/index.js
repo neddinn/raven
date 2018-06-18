@@ -18,10 +18,9 @@ module.exports = function (app) {
   app.post('/api/v1/verify', auth.verify);
   app.post('/api/v1/resend', auth.resend);
   app.post('/api/v1/handshake', isAuthenticated(), auth.handshake);
-  app.get('/api/v1/keyTest', isAuthenticated(), auth.keyTest);
 
   // Banks
-  app.get('/api/v1/banks', isAuthenticated(), banks.availableBanksList);
+  app.get('/api/v1/banks', banks.availableBanksList);
   app.post('/api/v1/verify_bank_account', isAuthenticated(), banks.verify);
   app.post('/api/v1/users/:userId/bankAccounts', isAuthenticated(), banks.new);
   app.get('/api/v1/users/:userId/bankAccounts', isAuthenticated(), banks.index);

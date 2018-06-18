@@ -34,7 +34,7 @@ describe('Users', () => {
       last4: '1234', 
       brand: 'MasterCard', 
       expiryMonth: '02', expiryYear: '2020', 
-      cvc: '126' 
+      cvv: '126' 
     };
 
     xit('Should update a user', (done) => {
@@ -49,7 +49,7 @@ describe('Users', () => {
           res.body.should.have.property('last4').and.eql(cardDetails.last4);
           res.body.should.have.property('brand').and.eql(cardDetails.brand);
           res.body.should.have.property('brand').and.eql(cardDetails.brand);
-          res.body.should.have.property('cvc').and.eql(cardDetails.cvc);
+          res.body.should.have.property('cvv').and.eql(cardDetails.cvv);
           done();
         })
     });

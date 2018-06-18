@@ -37,13 +37,11 @@ module.exports = {
     const message = `Your verification code is ${verificationCode}`;
 
     models.PhoneNumberVerification.upsert({ requestID, verificationCode, phoneNumber }, { phoneNumber })
-      // .then((data) => Pigeon[operation](phoneNumber, message))
+      .then((data) => Pigeon[operation](phoneNumber, message))
       .then((result) => {
         if (result) {
-          console.log('requestID', requestID);
           return res.status(200).json({ requestID });
         }
-        console.log('verificationCode', verificationCode);
         return res.status(500).send('An Error occured');
       })
       .catch(util.handleError(res));
@@ -80,7 +78,6 @@ module.exports = {
         authData.destroy()
         .then(authData => models.User.findOrCreate({ where: { phoneNumber: authData.phoneNumber }, defaults: { phoneNumber: authData.phoneNumber } }))
         .spread((userData, created) => {
-          console.log('created', created);
           if (!created) {
             return userData;
           }
@@ -89,7 +86,6 @@ module.exports = {
               userData.privateKey = key.privateKey;
               userData.serverKey = key.publicKey;
               userData.phoneNumber = authData.phoneNumber;
-              console.log('about to saveeeeee');
               return userData.save();
             });
           })
@@ -123,25 +119,5 @@ module.exports = {
         }));
       })
       .catch(util.handleError(res));
-  },
-  
-  keyTest: (req, res) => {
-    console.log('Inside keytest', req.user);
-    return res.status(200).send('done');
-    // models.Key.findOne({ 
-    //   where: {
-    //     id: {
-    //       $ne: null
-    //     }
-    //   } 
-    // })
-    // .then((key) => {
-    //   key.privateKey = 'test';
-    //   key.save().then((key) => {
-    //     console.log('key', key.privateKey);
-    //     res.status(200).send('done');
-    //   });
-    // })
-    // .catch(util.handleError(res));
   },
 };
