@@ -22,6 +22,28 @@ const development = {
   }
 };
 
+const staging = {
+  secret: process.env.JWT_SECRET,
+  database: {
+    url: process.env.DATABASE_URL,
+    port: process.env.DATABASE_PORT,
+    host: process.env.DATABASE_HOST
+  },
+  sms: {
+    fromNumber: process.env.SMS_FROM_NUMBER,
+    apikey: process.env.SMS_API_KEY,
+    username: process.env.SMS_API_USERNAME
+  },
+  crypto: {
+    passphrase: process.env.HASH_PASSPHRASE,
+  },
+  moneywave: {
+    baseUrl: process.env.PAYMENT_BASE_URL,
+    apiKey: process.env.PAYMENT_API_KEY,
+    secret: process.env.PAYMENT_API_SECRET
+  }
+};
+
 const test = {
   secret: 'thisisasecretkey',
   database: {
@@ -63,6 +85,7 @@ const config = {
   development,
   production,
   test,
+  staging,
 };
 
 module.exports = config;
